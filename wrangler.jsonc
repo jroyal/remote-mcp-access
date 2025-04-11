@@ -3,40 +3,38 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "mcp-github-oauth",
-	"main": "src/index.ts",
-	"compatibility_date": "2025-03-10",
-	"migrations": [
-		{
-			"new_sqlite_classes": ["MyMCP"],
-			"tag": "v1"
-		}
-	],
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"class_name": "MyMCP",
-				"name": "MCP_OBJECT"
-			}
-		]
-	},
-	"kv_namespaces": [
-		{
-			"binding": "OAUTH_KV",
-			"id": "<Add-KV-ID>"
-		}
-	],
-	"ai": {
-		"binding": "AI"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"dev": {
-		"port": 8788
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mcp-remote-access",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-10",
+  "migrations": [
+    {
+      "new_sqlite_classes": ["MyMCP"],
+      "tag": "v1",
+    },
+  ],
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "MyMCP",
+        "name": "MCP_OBJECT",
+      },
+    ],
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "0016cbc0ba1a4a4d836ffe9270e1f21c",
+    },
+  ],
+  "ai": {
+    "binding": "AI",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "dev": {
+    "port": 8788,
+  },
 }
