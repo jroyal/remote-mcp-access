@@ -55,10 +55,10 @@ export async function fetchUpstreamAuthToken({
   client_secret: string;
   redirect_uri: string;
   client_id: string;
-}): Promise<[string, null] | [null, Response]> {
+}): Promise<[string, string, null] | [null, null, Response]> {
   console.log("Trying to fetch upstream token", code, upstream_url);
   if (!code) {
-    return [null, new Response("Missing code", { status: 400 })];
+    return [null, null, new Response("Missing code", { status: 400 })];
   }
 
   const data = {
@@ -81,6 +81,7 @@ export async function fetchUpstreamAuthToken({
     console.log(await resp.text());
     return [
       null,
+      null,
       new Response("Failed to fetch access token", { status: 500 }),
     ];
   }
@@ -89,10 +90,15 @@ export async function fetchUpstreamAuthToken({
 
   const accessToken = body.access_token as string;
   if (!accessToken) {
-    return [null, new Response("Missing access token", { status: 400 })];
+    return [null, null, new Response("Missing access token", { status: 400 })];
+  }
+
+  const idToken = body.id_token as string;
+  if (!idToken) {
+    return [null, null, new Response("Missing id token", { status: 400 })];
   }
   // TODO: Should validate that this token was signed correctly
-  return [accessToken, null];
+  return [accessToken, idToken, null];
 }
 
 // Context from the auth process, encrypted & stored in the auth token

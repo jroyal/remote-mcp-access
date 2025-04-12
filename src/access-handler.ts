@@ -100,7 +100,7 @@ app.get("/callback", async (c) => {
   }
 
   // Exchange the code for an access token
-  const [accessToken, errResponse] = await fetchUpstreamAuthToken({
+  const [accessToken, idToken, errResponse] = await fetchUpstreamAuthToken({
     upstream_url: c.env.ACCESS_TOKEN_URL,
     client_id: c.env.ACCESS_CLIENT_ID,
     client_secret: c.env.ACCESS_CLIENT_SECRET,
@@ -111,16 +111,22 @@ app.get("/callback", async (c) => {
     return errResponse;
   }
 
-  const userFetch = await fetch(c.env.ACCESS_USERINFO_URL, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const user = (await userFetch.json()) as {
-    sub: string;
-    name: string;
-    email: string;
+  // TODO; if we are using the idToken we need to verify it. We need to bring the jwt utils in.
+  const idClaims = atob(idToken.split(".")[1]);
+  const idJSON = await JSON.parse(idClaims);
+  const user = {
+    sub: idJSON.sub,
+    name: idJSON.name,
+    email: idJSON.email,
   };
 
   // Return back to the MCP client a new token
+  console.log({
+    login: user.sub,
+    name: user.name,
+    email: user.email,
+    accessToken,
+  });
   const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
     request: oauthReqInfo,
     userId: user.sub,
