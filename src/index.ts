@@ -2,8 +2,7 @@ import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { Octokit } from "octokit";
-import { GitHubHandler } from "./github-handler.js";
+import { AccessHandler } from "./access-handler.js";
 
 // Context from the auth process, encrypted & stored in the auth token
 // and provided to the DurableMCP as this.props
@@ -14,15 +13,11 @@ type Props = {
   accessToken: string;
 };
 
-const ALLOWED_USERNAMES = new Set([
-  "jroyal@cloudflare.com",
-  // Add GitHub usernames of users who should have access to the image generation tool
-  // For example: 'yourusername', 'coworkerusername'
-]);
+const ALLOWED_USERNAMES = new Set(["jroyal@cloudflare.com"]);
 
 export class MyMCP extends McpAgent<Props, Env> {
   server = new McpServer({
-    name: "Github OAuth Proxy Demo",
+    name: "Access OAuth Proxy Demo",
     version: "1.0.0",
   });
 
@@ -37,26 +32,9 @@ export class MyMCP extends McpAgent<Props, Env> {
       })
     );
 
-    // Use the upstream access token to facilitate tools
-    this.server.tool(
-      "userInfoOctokit",
-      "Get user info from GitHub, via Octokit",
-      {},
-      async () => {
-        const octokit = new Octokit({ auth: this.props.accessToken });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(await octokit.rest.users.getAuthenticated()),
-            },
-          ],
-        };
-      }
-    );
-
     // Dynamically add tools based on the user's login. In this case, I want to limit
     // access to my Image Generation tool to just me
+    // @ts-ignore
     if (ALLOWED_USERNAMES.has(this.props.email)) {
       this.server.tool(
         "generateImage",
@@ -75,6 +53,7 @@ export class MyMCP extends McpAgent<Props, Env> {
             ),
         },
         async ({ prompt, steps }) => {
+          // @ts-ignore
           const response = await this.env.AI.run(
             "@cf/black-forest-labs/flux-1-schnell",
             {
@@ -99,7 +78,7 @@ export default new OAuthProvider({
   // @ts-ignore
   apiHandler: MyMCP.mount("/sse"),
   // @ts-ignore
-  defaultHandler: GitHubHandler,
+  defaultHandler: AccessHandler,
   authorizeEndpoint: "/authorize",
   tokenEndpoint: "/token",
   clientRegistrationEndpoint: "/register",

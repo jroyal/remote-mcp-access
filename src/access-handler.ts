@@ -3,7 +3,6 @@ import type {
   OAuthHelpers,
 } from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
-import { Octokit } from "octokit";
 import {
   fetchUpstreamAuthToken,
   getUpstreamAuthorizeUrl,
@@ -73,10 +72,9 @@ async function redirectToAccess(
     headers: {
       ...headers,
       location: getUpstreamAuthorizeUrl({
-        upstream_url:
-          "https://james.cloudflareaccess.com/cdn-cgi/access/sso/oidc/69e669cd8e007fd178050ccbaf6edd6a52cfda704251be2c14a26bbbd5998120/authorization",
+        upstream_url: env.ACCESS_AUTHORIZATION_URL,
         scope: "openid email profile",
-        client_id: env.GITHUB_CLIENT_ID,
+        client_id: env.ACCESS_CLIENT_ID,
         redirect_uri: new URL("/callback", request.url).href,
         state: btoa(JSON.stringify(oauthReqInfo)),
       }),
@@ -87,13 +85,12 @@ async function redirectToAccess(
 /**
  * OAuth Callback Endpoint
  *
- * This route handles the callback from GitHub after user authentication.
+ * This route handles the callback from Access after user authentication.
  * It exchanges the temporary code for an access token, then stores some
  * user metadata & the auth token as part of the 'props' on the token passed
  * down to the client. It ends by redirecting the client back to _its_ callback URL
  */
 app.get("/callback", async (c) => {
-  console.log("CALLBACK CALLED");
   // Get the oathReqInfo out of KV
   const oauthReqInfo = JSON.parse(
     atob(c.req.query("state") as string)
@@ -103,22 +100,18 @@ app.get("/callback", async (c) => {
   }
 
   // Exchange the code for an access token
-  console.log("CODE", c.req.query("code"), c.req.url);
   const [accessToken, errResponse] = await fetchUpstreamAuthToken({
-    upstream_url:
-      "https://james.cloudflareaccess.com/cdn-cgi/access/sso/oidc/69e669cd8e007fd178050ccbaf6edd6a52cfda704251be2c14a26bbbd5998120/token",
-    client_id: c.env.GITHUB_CLIENT_ID,
-    client_secret: c.env.GITHUB_CLIENT_SECRET,
+    upstream_url: c.env.ACCESS_TOKEN_URL,
+    client_id: c.env.ACCESS_CLIENT_ID,
+    client_secret: c.env.ACCESS_CLIENT_SECRET,
     code: c.req.query("code"),
     redirect_uri: new URL("/callback", c.req.url).href,
   });
   if (errResponse) {
-    console.log("RETURNING ERROR RESPONSE", errResponse);
     return errResponse;
   }
-  const userInfo =
-    "https://james.cloudflareaccess.com/cdn-cgi/access/sso/oidc/69e669cd8e007fd178050ccbaf6edd6a52cfda704251be2c14a26bbbd5998120/userinfo";
-  const userFetch = await fetch(userInfo, {
+
+  const userFetch = await fetch(c.env.ACCESS_USERINFO_URL, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const user = (await userFetch.json()) as {
@@ -127,12 +120,6 @@ app.get("/callback", async (c) => {
     email: string;
   };
 
-  //   // Fetch the user info from GitHub
-  //   const user = await new Octokit({
-  //     auth: accessToken,
-  //   }).rest.users.getAuthenticated();
-  //   const { login, name, email } = user.data;
-  console.log(accessToken);
   // Return back to the MCP client a new token
   const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
     request: oauthReqInfo,
@@ -149,8 +136,7 @@ app.get("/callback", async (c) => {
       accessToken,
     } as Props,
   });
-
   return Response.redirect(redirectTo);
 });
 
-export { app as GitHubHandler };
+export { app as AccessHandler };
