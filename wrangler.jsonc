@@ -34,6 +34,11 @@
   "observability": {
     "enabled": true,
   },
+  "vars": {
+    "ACCESS_TOKEN_URL": "https://james.cloudflareaccess.com/cdn-cgi/access/sso/oidc/69e669cd8e007fd178050ccbaf6edd6a52cfda704251be2c14a26bbbd5998120/token",
+    "ACCESS_AUTHORIZATION_URL": "https://james.cloudflareaccess.com/cdn-cgi/access/sso/oidc/69e669cd8e007fd178050ccbaf6edd6a52cfda704251be2c14a26bbbd5998120/authorization",
+    "ACCESS_USERINFO_URL": "https://james.cloudflareaccess.com/cdn-cgi/access/sso/oidc/69e669cd8e007fd178050ccbaf6edd6a52cfda704251be2c14a26bbbd5998120/userinfo",
+  },
   "dev": {
     "port": 8788,
   },
